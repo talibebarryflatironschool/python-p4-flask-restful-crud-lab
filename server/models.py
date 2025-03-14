@@ -1,72 +1,47 @@
-# from flask_sqlalchemy import SQLAlchemy
-# from sqlalchemy_serializer import SerializerMixin
-
-# db = SQLAlchemy()
-
-# class Plant(db.Model, SerializerMixin):
-#     __tablename__ = 'plants'
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String)
-#     image = db.Column(db.String)
-#     price = db.Column(db.Float)
-#     is_in_stock = db.Column(db.Boolean)
-
-#     def __repr__(self):
-#         return f'<Plant {self.name} | In Stock: {self.is_in_stock}>'
-
-
-
 from flask import Flask, request, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from sqlalchemy_serializer import SerializerMixin
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///plants.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
-# Example Plant model
-class Plant(db.Model):
+class Plant(db.Model, SerializerMixin):
+    __tablename__ = 'plants'
+
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    image = db.Column(db.String(200))
+    name = db.Column(db.String)
+    image = db.Column(db.String)
     price = db.Column(db.Float)
-    is_in_stock = db.Column(db.Boolean, default=True)
+    is_in_stock = db.Column(db.Boolean)
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "image": self.image,
-            "price": self.price,
-            "is_in_stock": self.is_in_stock
-        }
+    def __repr__(self):
+        return f'<Plant {self.name} | In Stock: {self.is_in_stock}>'
 
-# Update Route: PATCH /plants/:id
+# PATCH route: update the plant's is_in_stock status (or other fields as needed)
 @app.route('/plants/<int:id>', methods=['PATCH'])
 def update_plant(id):
     plant = Plant.query.get_or_404(id)
-    data = request.get_json()
+    data = request.get_json() or {}
 
-    # Update the plant's stock status if provided
+    # Update the is_in_stock attribute if it is provided in the request body
     if 'is_in_stock' in data:
         plant.is_in_stock = data['is_in_stock']
-    
-    # Add additional fields to update as needed
+
+    # Add additional fields to update here if needed
 
     db.session.commit()
     return jsonify(plant.to_dict()), 200
 
-# Destroy Route: DELETE /plants/:id
+# DELETE route: delete a plant
 @app.route('/plants/<int:id>', methods=['DELETE'])
 def delete_plant(id):
     plant = Plant.query.get_or_404(id)
     db.session.delete(plant)
     db.session.commit()
-    # Return an empty response with 204 status code
+    # Return an empty response with status code 204 (No Content)
     return '', 204
 
 if __name__ == '__main__':
